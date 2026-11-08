@@ -3,13 +3,14 @@ package com.pearltimer;
 import java.util.Map;
 import java.util.UUID;
 
-import net.minecraft.client.Camera;
+import net.minecraft.client.CameraType;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
@@ -35,10 +36,29 @@ final class PearlHud {
 		}
 
 		float partialTick = deltaTracker.getGameTimeDeltaPartialTick(false);
-		Camera camera = mc.gameRenderer.getMainCamera();
 		Font font = mc.font;
 		long now = level.getGameTime();
-		boolean firstPerson = mc.options.getCameraType().isFirstPerson();
+		CameraType cameraType = mc.options.getCameraType();
+		boolean firstPerson = cameraType.isFirstPerson();
+		Entity cameraEntity = mc.getCameraEntity();
+		if (cameraEntity == null) {
+			return;
+		}
+
+		// Work out where the camera is and where it looks, without using the Camera class.
+		double yawDeg = cameraEntity.getViewYRot(partialTick);
+		double pitchDeg = cameraEntity.getViewXRot(partialTick);
+		Vec3 camPos = cameraEntity.getEyePosition(partialTick);
+		if (!firstPerson) {
+			if (cameraType == CameraType.THIRD_PERSON_FRONT) {
+				yawDeg += 180.0;
+				pitchDeg = -pitchDeg;
+			}
+			double yr = Math.toRadians(yawDeg);
+			double pr = Math.toRadians(pitchDeg);
+			Vec3 look = new Vec3(-Math.sin(yr) * Math.cos(pr), -Math.sin(pr), Math.cos(yr) * Math.cos(pr));
+			camPos = camPos.subtract(look.scale(4.0)); // default third-person distance
+		}
 
 		for (Map.Entry<UUID, Long> entry : PearlTimerClient.expiry.entrySet()) {
 			Player player = level.getPlayerByUUID(entry.getKey());
@@ -53,7 +73,7 @@ final class PearlHud {
 			float secondsLeft = Math.max(0f, (entry.getValue() - now - partialTick) / 20f);
 
 			Vec3 head = player.getPosition(partialTick).add(0, player.getBbHeight() + 0.65, 0);
-			double[] screen = project(mc, camera, head);
+			double[] screen = project(mc, camPos, yawDeg, pitchDeg, head);
 			if (screen == null) {
 				continue;
 			}
@@ -80,14 +100,13 @@ final class PearlHud {
 	/**
 	 * Converts a world position to GUI-scaled screen coordinates, or null if it's behind the camera.
 	 */
-	private static double[] project(Minecraft mc, Camera camera, Vec3 worldPos) {
-		Vec3 camPos = camera.getPosition();
+	private static double[] project(Minecraft mc, Vec3 camPos, double yawDeg, double pitchDeg, Vec3 worldPos) {
 		double dx = worldPos.x - camPos.x;
 		double dy = worldPos.y - camPos.y;
 		double dz = worldPos.z - camPos.z;
 
-		double yaw = Math.toRadians(camera.getYRot());
-		double pitch = Math.toRadians(camera.getXRot());
+		double yaw = Math.toRadians(yawDeg);
+		double pitch = Math.toRadians(pitchDeg);
 
 		// Camera basis vectors. Minecraft yaw 0 faces +Z; positive pitch looks down.
 		double fx = -Math.sin(yaw) * Math.cos(pitch);
