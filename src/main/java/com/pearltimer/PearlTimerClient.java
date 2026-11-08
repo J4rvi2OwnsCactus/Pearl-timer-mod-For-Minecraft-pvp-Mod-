@@ -9,7 +9,7 @@ import java.util.UUID;
 import net.fabricmc.api.ClientModInitializer;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
@@ -20,7 +20,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.ThrownEnderpearl;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
 
 /**
  * Client-only. Watches for ender pearls appearing in the world, works out who threw each one,
@@ -47,7 +47,7 @@ public class PearlTimerClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		// Unbound by default: bind it yourself under Options > Controls > Key Binds > Pearl Timer.
-		toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+		toggleKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
 				"key.pearltimer.toggle_hud",
 				InputConstants.Type.KEYSYM,
 				InputConstants.UNKNOWN.getValue(),
